@@ -3,19 +3,14 @@
 import os
 import unittest
 import json
+import datetime
+import copy
 
-from myexpense import project
-from myexpense.tests.test_main import MainTests
 from myexpense.project._config import basedir
 from myexpense.project.models.account import Account
 from myexpense.project.exceptions import InvalidRequest
+from myexpense.tests.test_main import MainTests
 from sqlalchemy.exc import DatabaseError
-import datetime
-
-TEST_DB = 'test.db'
-
-db = project.db
-app = project.app
 
 class AccountTests(MainTests, unittest.TestCase):
 
@@ -29,23 +24,23 @@ class AccountTests(MainTests, unittest.TestCase):
 
     def create_account(self, plafond = 150000, has_plafond = 1, name = 'Carta', user_id = 2):
         new_account = Account(plafond = plafond, has_plafond = has_plafond, name = name, user_id = user_id)
-        db.session.add(new_account)
-        db.session.commit()
+        self.db.session.add(new_account)
+        self.db.session.commit()
         return new_account
 
     # Tests
     def test_account_can_be_added_to_db(self):
         self.create_account()
-        accounts = db.session.query(Account).all()
+        accounts = self.db.session.query(Account).all()
         self.assertEquals(accounts[0].name, 'Carta')
 
     def test_an_account_can_be_deleted(self):
         new_account = self.create_account()
-        accounts = db.session.query(Account).all()
+        accounts = self.db.session.query(Account).all()
         self.assertEquals(len(accounts), 1)
-        db.session.delete(new_account)
-        db.session.commit()
-        accounts = db.session.query(Account).all()
+        self.db.session.delete(new_account)
+        self.db.session.commit()
+        accounts = self.db.session.query(Account).all()
         self.assertEquals(len(accounts), 0)
 
     def test_accounts_can_be_retrieved_via_api(self):
@@ -82,13 +77,13 @@ class AccountTests(MainTests, unittest.TestCase):
 
     def test_a_new_account_cannot_be_posted_with_invalid_data_and_receive_an_error_via_api(self):
         self.create_account()
-        data = self.new_account_data
-        del data['user_id']
+        data = copy.deepcopy(self.new_account_data)
+        del data['name']
         response = self.app.post('/api/v1/accounts', data = json.dumps(data), content_type='application/json')
         self.assertEquals(response.status_code, 422)
-        self.assertIn(b'error', response.data)
+        self.assertIn('error', response.get_json())
         response = self.app.get('/api/v1/accounts')
-        self.assertNotIn(bytes(self.new_account_data['name'], 'utf-8'), response.data)
+        self.assertNotIn(self.new_account_data['plafond'], response.get_json())
 
     def test_an_account_can_be_deleted_via_api(self):
         new_account = self.create_account()

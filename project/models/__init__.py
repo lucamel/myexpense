@@ -1,1 +1,3 @@
-__all__ = ["expense", "account"]
+# from flask_sqlalchemy import SQLAlchemy
+
+# db = SQLAlchemy()

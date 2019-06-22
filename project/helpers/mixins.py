@@ -18,9 +18,11 @@ class ModelMixin(object):
     @classmethod
     def save(cls, data, schema):
         try:
-            schema(strict=True).load(data)
+            schema(strict=True).validate(data)
         except ValidationError as err:
             raise ValidationApiError('Invalid data', 422, type = err.__class__.__name__ , payload = err.messages)
+        except TypeError as err:
+            raise InvalidRequest('Invalid data', 422, type = err.__class__.__name__ , payload = {"error":"Invalid type error."})
         return cls.create(**data)
 
     @classmethod
