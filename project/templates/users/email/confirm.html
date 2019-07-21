@@ -1,0 +1,15 @@
+{% extends "/./_base.html" %}
+{% block content %}
+
+<div class="row">
+    <div class="panel panel-default">
+        <div class="panel-body">
+            <h3>Welcome {{ user.name}},</h3>
+            <p>Thanks for signing up. Please follow this link to activate your account:</p>
+            <p><a href="{{ confirm_url }}">{{ confirm_url }}</a></p>
+            <p>The link will be available until {{ expiration_date }}</p>
+            <h4>.MYEXPENSE</h4>
+        </div>
+    </div>
+</div>
+{% endblock %}

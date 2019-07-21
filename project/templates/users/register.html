@@ -1,0 +1,75 @@
+{% extends "./_base.html" %}
+{% block content %}
+
+<div class="row">
+    <div class="col-md-8 col-md-offset-2">
+        <div class="panel panel-default">
+            <div class="panel-body">
+                <form action="" method="POST" class="form-horizontal">
+                    {{ form.csrf_token }}
+                    <div class="form-group {{ 'has-error' if form.name.errors }}">
+                        {{ form.name.label(class_="col-md-4 control-label") }}
+                        <div class="col-md-6">
+                            {{ form.name(class_="form-control") }}
+                            {% if form.name.errors %}
+                            <span class="text-danger">
+                                {% for error in form.name.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="form-group {{ 'has-error' if form.email.errors }}">
+                        {{ form.email.label(class_="col-md-4 control-label") }}
+                        <div class="col-md-6">
+                            {{ form.email(class_="form-control") }}
+                            {% if form.email.errors %}
+                            <span class="text-danger">
+                                {% for error in form.email.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="form-group {{ 'has-error' if form.password.errors }}">
+                        {{ form.password.label(class_="col-md-4 control-label") }}
+                        <div class="col-md-6">
+                            {{ form.password(class_="form-control") }}
+                            {% if form.password.errors %}
+                            <span class="text-danger">
+                                {% for error in form.password.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="form-group {{ 'has-error' if form.confirm.errors }}">
+                        {{ form.confirm.label(class_="col-md-4 control-label") }}
+                        <div class="col-md-6">
+                            {{ form.confirm(class_="form-control") }}
+                            {% if form.confirm.errors %}
+                            <span class="text-danger">
+                                {% for error in form.confirm.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <div class="col-md-6 col-md-offset-4">
+                            <button class="btn btn-primary" type="submit">Register</button>
+                        </div>
+                    </div>
+                </form>
+                <div>
+                    <p><em>Already registered?</em> Click <a href="{{ url_for('users.user_login') }}">here</a> to login.</p>
+                </div>
+            </div>
+        </div>
+    </div>   
+</div>
+{% endblock %}

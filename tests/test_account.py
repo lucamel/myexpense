@@ -43,58 +43,64 @@ class AccountTests(MainTests, unittest.TestCase):
         accounts = self.db.session.query(Account).all()
         self.assertEquals(len(accounts), 0)
 
-    def test_accounts_can_be_retrieved_via_api(self):
-        new_account = self.create_account()
-        response = self.app.get('/api/v1/accounts')
+    def test_accounts_can_be_retrieved_by_owner_via_api(self):
+        access_token = self.get_access_token()
+        new_account = self.create_account(name="AccountName", user_id=1)
+        response = self.app.get('/api/v1/accounts', headers={'Authorization':'JWT '+ access_token})
         self.assertEquals(response.status_code, 200)
-        self.assertEquals(new_account.name, response.get_json()[0]['name'])
+        self.assertEquals("AccountName", response.get_json()[0]['name'])
 
-    def test_filtered_accounts_can_be_retrieved_via_api(self):
+    def test_filtered_accounts_can_be_retrieved_by_owner_via_api(self):
+        access_token = self.get_access_token()
         self.create_account(user_id = 1, name ='Carta')
-        self.create_account(user_id = 2, name = 'Carta')
-        response = self.app.get('/api/v1/accounts?user_id=1')
-        self.assertEquals(response.status_code, 200)
-        self.assertEquals(len(response.get_json()), 1)
-        response = self.app.get('/api/v1/accounts?name=Carta')
-        self.assertEquals(response.status_code, 200)
-        self.assertEquals(len(response.get_json()), 2)
-        response = self.app.get('/api/v1/accounts?user_id=1&name=Carta')
+        response = self.app.get('/api/v1/accounts?name=Carta', headers={'Authorization':'JWT '+ access_token})
         self.assertEquals(response.status_code, 200)
         self.assertEquals(len(response.get_json()), 1)
 
-    def test_an_account_can_be_retrieved_via_api(self):
-        new_account = self.create_account()
-        response = self.app.get('/api/v1/accounts/' + str(new_account.account_id))
+    def test_an_account_can_be_retrieved_via_by_owner_api(self):
+        access_token = self.get_access_token()
+        new_account = self.create_account(user_id=1)
+        response = self.app.get('/api/v1/accounts/' + str(new_account.account_id), headers={'Authorization':'JWT '+ access_token})
         self.assertEquals(response.status_code, 200)
         self.assertEquals(new_account.name, response.get_json()['name'])
+        new_account = self.create_account(user_id=2)
+        response = self.app.get('/api/v1/accounts/' + str(new_account.account_id), headers={'Authorization':'JWT '+ access_token})
+        self.assertEquals(response.status_code, 403)
 
-    def test_a_new_account_can_be_posted_via_api(self):
-        self.create_account()
-        response = self.app.post('/api/v1/accounts', data = json.dumps(self.new_account_data), content_type='application/json')
+    def test_a_new_account_can_be_posted_by_owner_via_api(self):
+        access_token = self.get_access_token()
+        self.create_account(user_id=1)
+        response = self.app.post('/api/v1/accounts', data = json.dumps(self.new_account_data), content_type='application/json', headers={'Authorization':'JWT '+ access_token})
         self.assertEquals(response.status_code, 201)
-        response = self.app.get('/api/v1/accounts')
+        response = self.app.get('/api/v1/accounts', headers={'Authorization':'JWT '+ access_token})
         self.assertEquals(self.new_account_data['name'], response.get_json()[1]['name'])
 
-    def test_a_new_account_cannot_be_posted_with_invalid_data_and_receive_an_error_via_api(self):
+    def test_a_new_account_cannot_be_posted_with_invalid_data_and_receive_an_error_by_owner_via_api(self):
+        access_token = self.get_access_token()
         self.create_account()
         data = copy.deepcopy(self.new_account_data)
         del data['name']
-        response = self.app.post('/api/v1/accounts', data = json.dumps(data), content_type='application/json')
+        response = self.app.post('/api/v1/accounts', data = json.dumps(data), content_type='application/json', headers={'Authorization':'JWT '+ access_token})
         self.assertEquals(response.status_code, 422)
         self.assertIn('error', response.get_json())
-        response = self.app.get('/api/v1/accounts')
+        response = self.app.get('/api/v1/accounts', headers={'Authorization':'JWT '+ access_token})
         self.assertNotIn(self.new_account_data['plafond'], response.get_json())
 
-    def test_an_account_can_be_deleted_via_api(self):
-        new_account = self.create_account()
-        response = self.app.delete('/api/v1/accounts/' + str(new_account.account_id), content_type='application/json')
+    def test_an_account_can_be_deleted_by_owner_via_api(self):
+        access_token = self.get_access_token()
+        new_account = self.create_account(user_id=1)
+        response = self.app.delete('/api/v1/accounts/' + str(new_account.account_id), content_type='application/json', headers={'Authorization':'JWT '+ access_token})
         self.assertEquals(response.status_code, 204)
         account = Account.query.get(new_account.account_id)
         self.assertEquals(account, None)
+        new_account = self.create_account(user_id=2)
+        response = self.app.delete('/api/v1/accounts/' + str(new_account.account_id), content_type='application/json', headers={'Authorization':'JWT '+ access_token})
+        self.assertEquals(response.status_code, 403)
 
-    def test_an_expense_can_be_updated_via_api(self):
-        new_account = self.create_account()
+    def test_an_expense_can_be_updated_by_owner_via_api(self):
+        access_token = self.get_access_token()
+        new_account = self.create_account(user_id=1)
         data = self.new_account_data
-        response = self.app.put('/api/v1/accounts/' + str(new_account.account_id), data = json.dumps(data), content_type='application/json')
+        response = self.app.put('/api/v1/accounts/' + str(new_account.account_id), data = json.dumps(data), content_type='application/json', headers={'Authorization':'JWT '+ access_token})
         self.assertEquals(response.status_code, 200)
         self.assertEquals(data['name'], response.get_json()['name'])

@@ -8,7 +8,7 @@ from ..helpers.mixins import ModelMixin
 
 class Expense(ModelMixin, db.Model):
 
-    filters = ['category', 'account_id', 'date', 'dateBetween']
+    filters = ['category', 'account_id', 'from', 'to']
 
     __tablename__ = 'expenses'
     
@@ -37,14 +37,24 @@ class Expense(ModelMixin, db.Model):
     def filter(self, args):
         args = args.copy()
         query = self.query
-        if(args.get('dateBetween') is not None): 
-            dates = [datetime.datetime.strptime(x, "%Y-%m-%d") for x in args.get('dateBetween').split(',')]
-            query = query.filter(Expense.date >= min(dates), Expense.date <= max(dates))
-            del args['dateBetween']
+        if(args.get('from') is not None): 
+            fromDate = datetime.datetime.strptime(args.get('from'), "%Y-%m-%d")
+            query = query.filter(Expense.date >= fromDate)
+            del args['from']
+        if(args.get('to') is not None):
+            toDate = datetime.datetime.strptime(args.get('to'), '%Y-%m-%d')
+            query = query.filter(Expense.date <= toDate)
+            del args['to']
         query = super().filter(args, query)
         return query
 
 class ExpenseSchema(ma.ModelSchema):
-    account = fields.Nested("AccountSchema", only=('account_id','name'))
+    account = fields.Nested("AccountSchema", only=('account_id','name', '_links'))
+    _links = ma.Hyperlinks(
+        {"self": ma.URLFor("api.api_expenses_get_item", expense_id="<expense_id>"), 
+        "collection": ma.URLFor("api.api_expenses_get_items")
+        }
+    )
+
     class Meta:
         model = Expense

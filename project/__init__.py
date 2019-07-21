@@ -95,6 +95,18 @@ def bad_request(err):
         error['error'].update(err.payload)
     return jsonify(error), err.status_code
 
+@app.errorhandler(403)
+def not_found(err):
+    if app.debug is True:
+        error_log.write_log('{} {}: {}'.format(403, err.__class__.__name__, request.url))
+    error = {
+        "error": {
+            "message" : str(err),
+            "type" : err.__class__.__name__,
+            }
+        }
+    return jsonify(error), 403
+
 @app.errorhandler(500)
 def internal_error(err):
     if app.debug is True:

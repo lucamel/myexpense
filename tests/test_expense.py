@@ -53,41 +53,45 @@ class ExpenseTests(MainTests, unittest.TestCase):
         expenses = self.db.session.query(Expense).all()
         self.assertEquals(len(expenses), 0)
 
-    def test_expenses_can_be_retrieved_via_api(self):
+    def test_expenses_can_be_retrieved_by_owner_via_api(self):
         access_token = self.get_access_token()
         new_expense = self.create_expense(user_id=1)
         response = self.app.get('/api/v1/expenses', headers={'Authorization':'JWT '+ access_token})
         self.assertEquals(response.status_code, 200)
-        self.assertEquals(new_expense.category, response.get_json()[0]['category'])
+        self.assertEquals(new_expense.category, response.get_json()['expenses'][0]['category'])
     
-    def test_filtered_expenses_can_be_retrieved_via_api(self):
+    def test_filtered_expenses_can_be_retrieved_by_owner_via_api(self):
         access_token = self.get_access_token()
         self.create_expense(user_id = 1, category ='Personal')
         self.create_expense(user_id = 1, category = 'Bank')
         self.create_expense(user_id = 2, category = 'Personal')
         response = self.app.get('/api/v1/expenses?user_id=1', headers={'Authorization':'JWT '+ access_token})
         self.assertEquals(response.status_code, 200)
-        self.assertEquals(len(response.get_json()), 2)
+        self.assertEquals(len(response.get_json()['expenses']), 2)
         response = self.app.get('/api/v1/expenses?category=Bank', headers={'Authorization':'JWT '+ access_token})
         self.assertEquals(response.status_code, 200)
-        self.assertEquals(len(response.get_json()), 1)
+        self.assertEquals(len(response.get_json()['expenses']), 1)
 
-    def test_an_expense_can_be_retrieved_via_api(self):
-        new_expense = self.create_expense()
-        response = self.app.get('/api/v1/expenses/' + str(new_expense.expense_id))
+    def test_an_expense_can_be_retrieved_by_owner_via_api(self):
+        access_token = self.get_access_token()
+        new_expense = self.create_expense(user_id=1)
+        response = self.app.get('/api/v1/expenses/' + str(new_expense.expense_id), headers={'Authorization':'JWT '+ access_token})
         self.assertEquals(response.status_code, 200)
         self.assertEquals(new_expense.category, response.get_json()['category'])
+        new_expense = self.create_expense(user_id=2)
+        response = self.app.get('/api/v1/expenses/' + str(new_expense.expense_id), headers={'Authorization':'JWT '+ access_token})
+        self.assertEquals(response.status_code, 403)
     
-    def test_a_new_expense_can_be_posted_via_api(self):
+    def test_a_new_expense_can_be_posted_by_owner_via_api(self):
         access_token = self.get_access_token()
         new_account = self.create_account()
         self.create_expense(account_id=new_account.account_id, user_id=1)
         response = self.app.post('/api/v1/expenses', data = json.dumps(self.new_expense_data), content_type='application/json', headers={'Authorization':'JWT '+ access_token})
         self.assertEquals(response.status_code, 201)
         response = self.app.get('/api/v1/expenses', headers={'Authorization':'JWT '+ access_token})
-        self.assertEquals(self.new_expense_data['category'], response.get_json()[1]['category'])
+        self.assertEquals(self.new_expense_data['category'], response.get_json()['expenses'][1]['category'])
 
-    def test_a_new_expense_can_be_posted_as_account_resource_via_api(self):
+    def test_a_new_expense_can_be_posted_as_account_resource_by_owner_via_api(self):
         access_token = self.get_access_token()
         new_account = self.create_account()
         self.create_expense(account_id=new_account.account_id, user_id=1)
@@ -96,9 +100,9 @@ class ExpenseTests(MainTests, unittest.TestCase):
         response = self.app.post('/api/v1/accounts/'+ str(new_account.account_id) +'/expenses', data = json.dumps(data), content_type='application/json', headers={'Authorization':'JWT '+ access_token})
         self.assertEquals(response.status_code, 201)
         response = self.app.get('/api/v1/expenses', headers={'Authorization':'JWT '+ access_token})
-        self.assertEquals(self.new_expense_data['category'], response.get_json()[1]['category'])
+        self.assertEquals(self.new_expense_data['category'], response.get_json()['expenses'][1]['category'])
 
-    def test_a_new_expense_cannot_be_posted_with_invalid_data_and_receive_an_error_via_api(self):
+    def test_a_new_expense_cannot_be_posted_with_invalid_data_and_receive_an_error_by_owner_via_api(self):
         access_token = self.get_access_token()
         self.create_expense()
         data = self.new_expense_data
@@ -110,7 +114,7 @@ class ExpenseTests(MainTests, unittest.TestCase):
         response = self.app.get('/api/v1/expenses', headers={'Authorization':'JWT '+ access_token})
         self.assertNotIn(self.new_expense_data['note'], response.get_json())
 
-    def test_a_new_expense_cannot_be_posted_as_account_resource_with_invalid_data_and_receive_an_error_via_api(self):
+    def test_a_new_expense_cannot_be_posted_as_account_resource_with_invalid_data_and_receive_an_error_by_owner_via_api(self):
         access_token = self.get_access_token()
         new_account = self.create_account()
         data = copy.deepcopy(self.new_expense_data)
@@ -123,61 +127,80 @@ class ExpenseTests(MainTests, unittest.TestCase):
         response = self.app.get('/api/v1/accounts/'+ str(new_account.account_id) +'/expenses', headers={'Authorization':'JWT '+ access_token})
         self.assertNotIn(self.new_expense_data['note'], response.get_json())
 
-    def test_an_expense_can_be_deleted_via_api(self):
+    def test_an_expense_can_be_deleted_by_owner_via_api(self):
+        access_token = self.get_access_token()
+        new_expense = self.create_expense(user_id=1)
+        response = self.app.delete('/api/v1/expenses/' + str(new_expense.expense_id), content_type='application/json', headers={'Authorization':'JWT '+ access_token})
+        self.assertEquals(response.status_code, 204)
+        expense = Expense.query.get(new_expense.expense_id)
+        self.assertEquals(expense, None)
         new_expense = self.create_expense()
-        response = self.app.delete('/api/v1/expenses/' + str(new_expense.expense_id), content_type='application/json')
+        response = self.app.delete('/api/v1/expenses/' + str(new_expense.expense_id), content_type='application/json', headers={'Authorization':'JWT '+ access_token})
+        self.assertEquals(response.status_code, 403)
+
+    def test_an_expense_can_be_deleted_as_account_resource_by_owner_via_api(self):
+        access_token = self.get_access_token()
+        new_account = self.create_account()
+        new_expense = self.create_expense(account_id=new_account.account_id, user_id=1)
+        response = self.app.delete('/api/v1/accounts/'+ str(new_expense.account_id) +'/expenses/' + str(new_expense.expense_id), content_type='application/json', headers={'Authorization':'JWT '+ access_token})
         self.assertEquals(response.status_code, 204)
         expense = Expense.query.get(new_expense.expense_id)
         self.assertEquals(expense, None)
-
-    def test_an_expense_can_be_deleted_as_account_resource_via_api(self):
         new_account = self.create_account()
         new_expense = self.create_expense(account_id=new_account.account_id)
-        response = self.app.delete('/api/v1/accounts/'+ str(new_expense.account_id) +'/expenses/' + str(new_expense.expense_id), content_type='application/json')
-        self.assertEquals(response.status_code, 204)
-        expense = Expense.query.get(new_expense.expense_id)
-        self.assertEquals(expense, None)
+        response = self.app.delete('/api/v1/accounts/'+ str(new_expense.account_id) +'/expenses/' + str(new_expense.expense_id), content_type='application/json', headers={'Authorization':'JWT '+ access_token})
+        self.assertEquals(response.status_code, 403)
 
-    def test_an_expense_cannot_be_deleted_as_account_resource_via_api(self):
+    def test_an_expense_cannot_be_deleted_as_account_resource_from_wrong_account_by_owner_via_api(self):
+        access_token = self.get_access_token()
         new_account = self.create_account()
         new_expense = self.create_expense(account_id=new_account.account_id)
-        response = self.app.delete('/api/v1/accounts/'+ str(new_expense.account_id + 1) +'/expenses/' + str(new_expense.expense_id), content_type='application/json')
+        response = self.app.delete('/api/v1/accounts/'+ str(new_expense.account_id + 1) +'/expenses/' + str(new_expense.expense_id), content_type='application/json', headers={'Authorization':'JWT '+ access_token})
         self.assertEquals(response.status_code, 404)
         expense = Expense.query.get(new_expense.expense_id)
         self.assertEquals(expense.expense_id, new_expense.expense_id)
 
-    def test_an_expense_can_be_updated_via_api(self):
-        new_expense = self.create_expense()
+    def test_an_expense_can_be_updated_by_owner_via_api(self):
+        access_token = self.get_access_token()
+        new_expense = self.create_expense(user_id=1)
         data = self.new_expense_data
-        response = self.app.put('/api/v1/expenses/' + str(new_expense.expense_id), data = json.dumps(data), content_type='application/json')
+        response = self.app.put('/api/v1/expenses/' + str(new_expense.expense_id), data = json.dumps(data), content_type='application/json', headers={'Authorization':'JWT '+ access_token})
+        self.assertEquals(response.status_code, 200)
+        self.assertEquals(data['note'], response.get_json()['note'])
+        new_expense = self.create_expense(user_id=2)
+        data = self.new_expense_data
+        response = self.app.put('/api/v1/expenses/' + str(new_expense.expense_id), data = json.dumps(data), content_type='application/json', headers={'Authorization':'JWT '+ access_token})
+        self.assertEquals(response.status_code, 403)
+
+    def test_an_expense_can_be_updated_as_account_resource_by_owner_via_api(self):
+        access_token = self.get_access_token()
+        new_account = self.create_account(user_id=1)
+        new_expense = self.create_expense(user_id=1, account_id=new_account.account_id)
+        data = self.new_expense_data
+        response = self.app.put('/api/v1/accounts/'+ str(new_expense.account_id) +'/expenses/' + str(new_expense.expense_id), data = json.dumps(data), content_type='application/json', headers={'Authorization':'JWT '+ access_token})
         self.assertEquals(response.status_code, 200)
         self.assertEquals(data['note'], response.get_json()['note'])
 
-    def test_an_expense_can_be_updated_as_account_resource_via_api(self):
+    def test_an_expense_cannnot_be_updated_as_account_resource_from_wrong_account_by_owner_via_api(self):
+        access_token = self.get_access_token()
         new_account = self.create_account()
         new_expense = self.create_expense(account_id=new_account.account_id)
         data = self.new_expense_data
-        response = self.app.put('/api/v1/accounts/'+ str(new_expense.account_id) +'/expenses/' + str(new_expense.expense_id), data = json.dumps(data), content_type='application/json')
-        self.assertEquals(response.status_code, 200)
-        self.assertEquals(data['note'], response.get_json()['note'])
-
-    def test_an_expense_cannnot_be_updated_as_account_resource_from_wrong_account_via_api(self):
-        new_account = self.create_account()
-        new_expense = self.create_expense(account_id=new_account.account_id)
-        data = self.new_expense_data
-        response = self.app.put('/api/v1/accounts/'+ str(new_expense.account_id + 1) +'/expenses/' + str(new_expense.expense_id), data = json.dumps(data), content_type='application/json')
+        response = self.app.put('/api/v1/accounts/'+ str(new_expense.account_id + 1) +'/expenses/' + str(new_expense.expense_id), data = json.dumps(data), content_type='application/json', headers={'Authorization':'JWT '+ access_token})
         self.assertEquals(response.status_code, 404)
 
-    def test_expenses_can_be_retieved_from_an_account_via_api(self):
-        new_account = self.create_account()
-        new_expense = self.create_expense(account_id=new_account.account_id)
-        response = self.app.get('/api/v1/accounts/'+ str(new_account.account_id) +'/expenses')
+    def test_expenses_can_be_retieved_from_an_account_by_owner_via_api(self):
+        access_token = self.get_access_token()
+        new_account = self.create_account(user_id=1)
+        new_expense = self.create_expense(user_id=1, account_id=new_account.account_id)
+        response = self.app.get('/api/v1/accounts/'+ str(new_account.account_id) +'/expenses', headers={'Authorization':'JWT '+ access_token})
         self.assertEquals(response.status_code, 200)
-        self.assertEquals(new_expense.category, response.get_json()[0]['category'])
+        self.assertEquals(new_expense.category, response.get_json()['expenses'][0]['category'])
 
-    def test_an_expense_can_be_retrieved_from_an_account_via_api(self):
-        new_account = self.create_account()
-        new_expense = self.create_expense(account_id=new_account.account_id)
-        response = self.app.get('/api/v1/accounts/'+ str(new_account.account_id) +'/expenses/' + str(new_expense.expense_id))
+    def test_an_expense_can_be_retrieved_from_an_account_by_owner_via_api(self):
+        access_token = self.get_access_token()
+        new_account = self.create_account(user_id=1)
+        new_expense = self.create_expense(user_id=1, account_id=new_account.account_id)
+        response = self.app.get('/api/v1/accounts/'+ str(new_account.account_id) +'/expenses/' + str(new_expense.expense_id), headers={'Authorization':'JWT '+ access_token})
         self.assertEquals(response.status_code, 200)
         self.assertEquals(new_expense.category, response.get_json()['category'])
