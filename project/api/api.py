@@ -5,7 +5,6 @@ from flask_jwt import jwt_required, current_identity
 from marshmallow.exceptions import ValidationError
 from sqlalchemy import exc
 from sqlalchemy.orm import lazyload, joinedload, selectinload, raiseload
-from sqlalchemy import func
 
 from .. import db, email
 from ..exceptions import InvalidRequest, ValidationApiError
@@ -13,6 +12,7 @@ from ..helpers.pagination import Pagination
 from ..models.user import User, UserSchema
 from ..models.expense import Expense, ExpenseSchema
 from ..models.account import  Account, AccountSchema
+from ..models.balance import Balance, BalanceSchema
 from ..token import generate_confirmation_token, confirm_token
 
 
@@ -175,7 +175,7 @@ def api_accounts_get_expenses_items(account_id):
     except Exception as err:
         raise InvalidRequest('Invalid query params!', 400, type = err.__class__.__name__)
     expenses = Pagination(query, request, 'expenses')
-    paginated = expenses.paginated_json(ExpenseSchema(many=True).dump(expenses.data).data)
+    paginated = expenses.paginated_json(ExpenseSchema(many=True, exclude=('account',)).dump(expenses.data).data)
     return make_response(jsonify(paginated), 200)
 
 @api_blueprint.route('/api/v1/accounts/<int:account_id>/expenses/<int:expense_id>/', methods=['GET'])
@@ -230,3 +230,37 @@ def api_accounts_update_expenses_item(account_id, expense_id):
         data['date'] = datetime.datetime.strptime(data['date'], '%Y-%m-%d')
     expense.update(data)
     return make_response(ExpenseSchema().jsonify(expense), 200)
+
+@api_blueprint.route('/api/v1/accounts/<int:account_id>/balance/', methods=['GET'])
+@api_blueprint.route('/api/v1/accounts/<int:account_id>/balance', methods=['GET'])
+@jwt_required()
+def api_accounts_get_balance(account_id):
+    account = Account.query.options(raiseload('expenses')).filter_by(account_id=account_id).first_or_404()
+    if account.user_id != current_identity.user_id:
+        abort(403)
+    try:
+        from_date = datetime.datetime.strptime(request.args.get('from'), "%Y-%m-%d") if request.args.get('from') is not None else datetime.date.min
+        to_date = datetime.datetime.strptime(request.args.get('to'), "%Y-%m-%d") if request.args.get('to') is not None else datetime.date.today()
+        if from_date > to_date:
+            raise InvalidRequest('Invalid query params: to should be greater than from', 400, type = "DateFilterError")
+        year = request.args.get('year') if request.args.get('year') is not None else datetime.date.today().year
+        month = request.args.get('month') if request.args.get('month') is not None else datetime.date.today().month
+        m_date = datetime.date(int(year), int(month), 1)
+    except ValueError as err:
+        raise InvalidRequest('Invalid query params!', 400, type = err.__class__.__name__)
+    balance = Balance(current_identity.user_id, account, from_date, to_date, m_date)
+    return make_response(BalanceSchema().jsonify(balance), 200)
+
+@api_blueprint.route('/api/v1/balance/', methods=['GET'])
+@api_blueprint.route('/api/v1/balance', methods=['GET'])
+@jwt_required()
+def api_get_balance():
+    try:
+        from_date = datetime.datetime.strptime(request.args.get('from'), "%Y-%m-%d") if request.args.get('from') is not None else datetime.date.min
+        to_date = datetime.datetime.strptime(request.args.get('to'), "%Y-%m-%d") if request.args.get('to') is not None else datetime.date.today()
+        if from_date > to_date:
+            raise InvalidRequest('Invalid query params: to should be greater than from', 400, type = "DateFilterError")
+    except ValueError as err:
+        raise InvalidRequest('Invalid query params!', 400, type = err.__class__.__name__)
+    balance = Balance(current_identity.user_id, from_date=from_date, to_date=to_date)
+    return make_response(BalanceSchema(exclude=('account',)).jsonify(balance), 200)

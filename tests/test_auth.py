@@ -3,16 +3,9 @@
 import os
 import unittest
 import json
-import datetime
-import copy
 
-from myexpense import project
-from myexpense.project import bcrypt
-from myexpense.project._config import basedir
 from myexpense.tests.test_main import MainTests
 from myexpense.project.models.user import User
-from myexpense.project.exceptions import InvalidRequest
-from sqlalchemy.exc import DatabaseError
 
 class AuthTests(MainTests, unittest.TestCase):
 

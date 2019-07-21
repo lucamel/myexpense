@@ -6,13 +6,9 @@ import json
 import datetime
 import copy
 
-from myexpense import project
-from myexpense.project._config import basedir
-from myexpense.tests.test_main import MainTests
 from myexpense.project.models.account import Account
 from myexpense.project.models.expense import Expense
-from myexpense.project.exceptions import InvalidRequest
-from sqlalchemy.exc import DatabaseError
+from myexpense.tests.test_main import MainTests
 
 class ExpenseTests(MainTests, unittest.TestCase):
 

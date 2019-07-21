@@ -38,12 +38,12 @@ class Expense(ModelMixin, db.Model):
         args = args.copy()
         query = self.query
         if(args.get('from') is not None): 
-            fromDate = datetime.datetime.strptime(args.get('from'), "%Y-%m-%d")
-            query = query.filter(Expense.date >= fromDate)
+            from_date = datetime.datetime.strptime(args.get('from'), "%Y-%m-%d")
+            query = query.filter(Expense.date >= from_date)
             del args['from']
         if(args.get('to') is not None):
-            toDate = datetime.datetime.strptime(args.get('to'), '%Y-%m-%d')
-            query = query.filter(Expense.date <= toDate)
+            to_date = datetime.datetime.strptime(args.get('to'), '%Y-%m-%d')
+            query = query.filter(Expense.date <= to_date)
             del args['to']
         query = super().filter(args, query)
         return query
