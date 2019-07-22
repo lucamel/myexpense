@@ -17,8 +17,6 @@ class RegisterForm(FlaskForm):
         if user is not None:
             raise ValidationError("User already registered.")
         return True
-        
-
 
 class LoginForm(FlaskForm):
     email = StringField('Email', validators = [DataRequired()])

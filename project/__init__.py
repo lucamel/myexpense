@@ -48,7 +48,9 @@ def make_payload(identity):
 def auth_response(access_token, identity):
     return jsonify({'access_token': access_token.decode('utf-8'), 'expires_in': int(app.config.get('JWT_EXPIRATION_DELTA').total_seconds())})
 
-login_manager.login_view = "users.user_login"
+login_manager.login_view = 'users.user_login'
+login_manager.login_message_category = 'info'
+login_manager.login_message = 'Please log in!'
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -62,9 +64,9 @@ def not_found(err):
     if app.debug is True:
         error_log.write_log('{} {}: {}'.format(404, err.__class__.__name__, request.url))
     error = {
-        "error": {
-            "message" : str(err),
-            "type" : err.__class__.__name__,
+        'error': {
+            'message' : str(err),
+            'type' : err.__class__.__name__,
             }
         }
     return jsonify(error), 404
@@ -74,9 +76,9 @@ def database_error(err):
     if app.debug is True:
         error_log.write_log('{} {}: {}'.format(500, err.__class__.__name__, request.url))
     error = {
-        "error": {
-            "message" : 'Error occurred during database activity',
-            "type" : err.__class__.__name__,
+        'error': {
+            'message' : 'Error occurred during database activity',
+            'type' : err.__class__.__name__,
             }
         }
     return jsonify(error), 500
@@ -86,9 +88,9 @@ def bad_request(err):
     if app.debug is True:
         error_log.write_log('{} {}: {}'.format(err.status_code, err.__class__.__name__, request.url))
     error = {
-        "error": {
-            "message" : err.message,
-            "type" : err.type,
+        'error': {
+            'message' : err.message,
+            'type' : err.type,
             }
         }
     if err.payload is not None:
@@ -100,9 +102,9 @@ def not_found(err):
     if app.debug is True:
         error_log.write_log('{} {}: {}'.format(403, err.__class__.__name__, request.url))
     error = {
-        "error": {
-            "message" : str(err),
-            "type" : err.__class__.__name__,
+        'error': {
+            'message' : str(err),
+            'type' : err.__class__.__name__,
             }
         }
     return jsonify(error), 403
@@ -112,12 +114,12 @@ def internal_error(err):
     if app.debug is True:
         error_log.write_log('{} {}: {}'.format(500, err.__class__.__name__, request.url))
     error = {
-        "error": {
-            "message" : str(err),
-            "type" : err.__class__.__name__ ,
+        'error': {
+            'message' : str(err),
+            'type' : err.__class__.__name__ ,
             }
         }
     return jsonify(error), 500
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     app.run()
