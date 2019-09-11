@@ -8,13 +8,13 @@ from ..helpers.mixins import ModelMixin
 
 class Account(ModelMixin, db.Model):
 
-    filters = ['name', 'account_id']
+    filters = ['name']
 
     __tablename__ = 'accounts'
 
     account_id = db.Column(db.Integer, primary_key=True)
     plafond = db.Column(db.Integer, nullable=True)
-    name = db.Column(db.String(40), nullable=False)
+    name = db.Column(db.String(40), nullable=False, index=True)
     has_plafond = db.Column(db.Boolean, nullable=False, default=False)
     user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'), nullable=False)
     initial_balance = db.Column(db.Integer, nullable=True)

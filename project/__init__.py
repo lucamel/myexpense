@@ -121,5 +121,5 @@ def internal_error(err):
         }
     return jsonify(error), 500
 
-if __name__ == '__main__':
-    app.run()
+#if __name__ == '__main__':
+    #app.run()

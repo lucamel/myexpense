@@ -14,9 +14,9 @@ class Expense(ModelMixin, db.Model):
     
     expense_id = db.Column(db.Integer, primary_key=True)
     amount = db.Column(db.Integer, nullable=False)
-    category = db.Column(db.String(40), nullable = False)
-    date = db.Column(db.Date, nullable = False)
-    note = db.Column(db.String(200), nullable = True)
+    category = db.Column(db.String(40), nullable=False, index=True)
+    date = db.Column(db.Date, nullable=False, index=True)
+    note = db.Column(db.String(200), nullable=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'), nullable=False)
     account_id = db.Column(db.Integer, db.ForeignKey('accounts.account_id'), nullable=False)
 
